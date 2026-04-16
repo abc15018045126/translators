@@ -1,17 +1,14 @@
 # @abc15018045126/translators
 
-🚀 一个高性能、全平台兼容的翻译 SDK，支持 Google 和 Bing 引擎。
-
-本库提取自 [EdgeTranslate](https://github.com/Meapri/EdgeTranslate-v3) 的核心逻辑，经过深度重构，完美适配 Chrome Manifest V3、Node.js 以及现代浏览器环境。
+🚀 一个高性能、全平台兼容的翻译 SDK，深度集成了 Google 和 Bing 翻译引擎，专为 Manifest V3 和高性能场景设计。
 
 ## 特性
 
-- **多引擎支持**：内置 Google 和 Bing 翻译引擎（已移除 DeepL 以保持轻量）。
-- **MV3 兼容**：完全适配 Chrome 扩展的 Service Worker 环境，无 DOM API 依赖。
-- **并发控制**：内置请求去重机制（In-flight deduplication），防止重复请求。
-- **智能缓存**：内置 LRU 缓存系统，显著提升翻译速度。
-- **自动降级**：Google 引擎支持 TKK 自动更新与失败重试逻辑。
-- **多端运行**：支持 Browser (fetch), Node.js (undici) 以及 Webview。
+- **三种模式**：独立使用 Google、独立使用 Bing，或使用强大的 **Hybrid（混合）模式**。
+- **混合策略**：支持灵活配置。你可以用 Google 翻译正文，用 Bing 查询详细词典和例句。
+- **并发控制**：内置请求去重机制（In-flight deduplication），并支持并发锁防止冗余的 Token 更新。
+- **全平台支持**：无需修改即可运行于 Chrome 扩展 (MV3)、Node.js (18+)、Webview 和现代浏览器。
+- **零配置缓存**：内置 LRU 缓存系统，翻译完全相同的文本时秒回结果。
 
 ## 安装
 
@@ -19,24 +16,64 @@
 npm install @abc15018045126/translators
 ```
 
-## 快速开始
+## 核心模式使用指南
+
+### 1. Google 模式 (GoogleTranslator)
+最经典的选择，支持自动检测语言、音标输出及 TKK 令牌自动更新。
 
 ```javascript
-import { GoogleTranslator, BingTranslator } from '@abc15018045126/translators';
+import { GoogleTranslator } from '@abc15018045126/translators';
 
-const translator = new GoogleTranslator();
+const google = new GoogleTranslator();
+const res = await google.translate("Stay hungry, stay foolish", "auto", "zh-CN");
+console.log(google.mainMeaning); // "求知若渴，虚心若愚"
+```
 
-async function translate() {
-  const result = await translator.translate("Hello World", "en", "zh-CN");
-  console.log(result.mainMeaning); // "你好，世界"
-}
+### 2. Bing 模式 (BingTranslator)
+极佳的备选方案，在某些网络环境下比 Google 更稳定，且提供了非常详尽的例句和词典解析。
 
-translate();
+```javascript
+import { BingTranslator } from '@abc15018045126/translators';
+
+const bing = new BingTranslator();
+const res = await bing.translate("Magic", "en", "zh-CN");
+console.log(res.detailedMeanings); // 会输出名词、形容词等多种词义
+```
+
+### 3. 混合模式 (HybridTranslator) —— 推荐
+这是本库最强大的功能。它可以让你组合不同引擎的优势。例如：用 Google 翻译主要的释义，但使用 Bing 获取更丰富的例句和词典。
+
+```javascript
+import { HybridTranslator } from '@abc15018045126/translators';
+
+const hybrid = new HybridTranslator();
+
+// 默认配置下，它会智能分配请求。
+// 你也可以通过 settings 自定义哪个部分用哪个引擎
+const res = await hybrid.translate("Integrity", "auto", "zh-CN");
+
+console.log(res.mainMeaning);    // 默认可能来自 Google
+console.log(res.examples);       // 可能来自 Bing (因为它更详尽)
+```
+
+## 高级功能
+
+### 预热 (Warm-Up)
+为了降低第一次翻译时的延迟（需要获取网络 Token），建议在 App 启动时调用：
+```javascript
+translator.warmUp();
+```
+
+### 语音播放 (Pronounce)
+内置了跨平台的语音支持：
+```javascript
+// 支持 fast/normal 速度
+await google.pronounce("Hello", "en", "normal");
 ```
 
 ## 致谢
 
-本项目核心逻辑基于 [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3) 开发并进行二次维护。感谢原作者提供的优秀地基。
+本项目核心逻辑基于 [Meapri/EdgeTranslate-v3](https://github.com/Meapri/EdgeTranslate-v3) 开发。我们在其基础上进行了代码现代重构，增加了 MV3 适配和性能优化。
 
 ## 许可证
 
